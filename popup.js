@@ -19,6 +19,11 @@ chrome.storage.local.get('divTree', ({ divTree }) => {
 function renderDivTree(container, node) {
   const divNode = document.createElement('div');
   divNode.classList.add('node');
+  divNode.addEventListener('mousedown', event => {
+    if (event.button === 2) {
+      showContextMenu(event, divNode);
+    }
+  });
 
   // 将 tagInfo 内容作为 data-attribute 存储在节点上
   divNode.setAttribute('data-tag-info', `${node.textContent}`);
@@ -43,25 +48,14 @@ function renderDivTree(container, node) {
   }
 }
 document.addEventListener('contextmenu', event => event.preventDefault());
-
 // 鼠标右键点击事件监听
-document.addEventListener('DOMContentLoaded', () => {
-  const nodes = document.querySelectorAll('.node');
-  logToBackground('nodescount'+nodes.length);
-  nodes.forEach(node => {
-    node.addEventListener('mousedown', event => {
-      if (event.button === 2) {
-        showContextMenu(event, node);
-      }
-    });
-  });
-});
 
 // 显示上下文菜单
 function showContextMenu(event, target) {
   const contextMenu = document.createElement('div');
   contextMenu.classList.add('context-menu');
-  contextMenu.style.top = `${event.clientY}px`;
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  contextMenu.style.top = `${event.clientY + scrollTop}px`;
   contextMenu.style.left = `${event.clientX}px`;
 
   const colors = ['star', 'bad', 'abandon']; // 这里可以添加更多颜色选项
