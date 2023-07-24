@@ -1,0 +1,14 @@
+{
+  "name": "googlechromeextension",
+  "version": "1.0.0",
+  "description": "google chrome extension for recording gpt branch",
+  "main": "popup.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "happen",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/chrome": "^0.0.241"
+  }
+}

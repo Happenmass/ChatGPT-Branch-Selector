@@ -1,0 +1,51 @@
+#tree-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+    width: 500px;
+  }
+  
+  .node {
+    width: 32px;
+    height: 32px;
+    background-color: #007bff;
+    border-radius: 50%;
+    margin: 10px; /* 调整节点之间的间距 */
+    position: relative;
+  }
+  .node[data-type='ask'] {
+    background-color: red; /* 设置 type 为 'ask' 的节点背景颜色为红色 */
+  }
+  
+  .node[data-type='answer'] {
+    background-color: green; /* 设置 type 为 'answer' 的节点背景颜色为绿色 */
+  }
+
+  .node:hover::before {
+    content: attr(data-tag-info);
+    position: absolute;
+    top: -50px; /* 调整悬浮窗位置 */
+    left: 50%;
+    width: 200px;
+    transform: translateX(-50%);
+    background-color: #007bff;
+    color: #ffffff;
+    padding: 5px;
+    border-radius: 5px;
+    z-index: 1;
+    display: block;
+  }
+  
+  .line {
+    width: 2px;
+    height: 40px; /* 调整直线的长度 */
+    background-color: #007bff;
+  }
+  
+  .children-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
