@@ -23,6 +23,16 @@
     background-color: green; /* 设置 type 为 'answer' 的节点背景颜色为绿色 */
   }
 
+  .node[data-type='star'] {
+    background-color: yellow; /* 设置 type 为 'star' 的节点背景颜色为黄色 */
+  }
+  .node[data-type='bad'] {
+    background-color: grey; /* 设置 type 为 'bad' 的节点背景颜色为灰色 */
+  }
+  .node[data-type='abandon'] {
+    background-color: black; /* 设置 type 为 'abandon' 的节点背景颜色为灰色 */
+  }
+
   .node:hover::before {
     content: attr(data-tag-info);
     position: absolute;
@@ -48,4 +58,22 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+  }
+
+  .context-menu {
+    position: absolute;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 2;
+  }
+  
+  .menu-item {
+    padding: 5px;
+    cursor: pointer;
+    user-select: none;
+  }
+  
+  .menu-item:hover {
+    background-color: #f1f1f1;
   }

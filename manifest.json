@@ -12,7 +12,8 @@
     },
     "permissions": [
       "activeTab",
-      "storage"
+      "storage",
+      "contextMenus"
     ],
     "content_scripts": [
       {
