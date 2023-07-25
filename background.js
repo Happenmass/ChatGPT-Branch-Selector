@@ -33,4 +33,20 @@ chrome.runtime.onInstalled.addListener(() => {
       message: message,
     });
   }
+  chrome.action.onClicked.addListener(tab => {
+    // 创建悬浮窗口
+    createFloatingWindow();
+  });
   
+  // 创建悬浮窗口的函数
+  function createFloatingWindow() {
+    chrome.windows.create({
+      type: 'popup',
+      url: 'popup.html',
+      width: 400,
+      height: 300,
+      focused: true,
+      left: 0,
+      top: 0
+    });
+  }

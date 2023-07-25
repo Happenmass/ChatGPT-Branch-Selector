@@ -21,6 +21,7 @@ function renderDivTree(container, node) {
   divNode.classList.add('node');
   divNode.addEventListener('mousedown', event => {
     if (event.button === 2) {
+      hideContextMenu();
       showContextMenu(event, divNode);
     }
   });
@@ -49,6 +50,21 @@ function renderDivTree(container, node) {
 }
 document.addEventListener('contextmenu', event => event.preventDefault());
 // 鼠标右键点击事件监听
+
+
+document.addEventListener('DOMContentLoaded', function () {
+  const mainContainer = document.getElementById('tree-container');
+
+  // 监听失去焦点事件
+  window.addEventListener('blur', function (event) {
+    // 阻止事件冒泡
+    event.stopPropagation();
+
+    // 这里可以选择执行其他操作，比如保持界面可见
+    // 例如：mainContainer.style.display = 'block';
+  });
+});
+
 
 // 显示上下文菜单
 function showContextMenu(event, target) {
@@ -94,5 +110,39 @@ function hideContextMenu() {
 // 设置节点颜色
 function setNodeColor(node, color) {
   node.setAttribute('data-type', color);
+
+  // 获取之前记录的 divTree 数据
+  chrome.storage.local.get('divTree', ({ divTree }) => {
+    if (divTree) {
+      // 更新节点的 type 属性
+      updateNodeType(divTree, node, color);
+
+      // 将更新后的 divTree 数据保存到 Chrome 扩展的存储中
+      chrome.storage.local.set({ divTree }, () => {
+        logToBackground('type have been changed');
+      });
+    }
+  });
 }
-  
+
+// 递归更新节点的 type 属性
+function updateNodeType(node, targetNode, type) {
+  if (node.textContent === targetNode.getAttribute('data-tag-info')) {
+    node.type = type;
+    return true;
+  }
+
+  if (node.children.length) {
+    for (const childNode of node.children) {
+      if (updateNodeType(childNode, targetNode, type)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function logToBackground(message) {
+  chrome.runtime.sendMessage({ action: 'log', message: message });
+}

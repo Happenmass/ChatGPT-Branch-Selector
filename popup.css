@@ -3,8 +3,7 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    min-height: 1000px;
-    width: 500px;
+    min-height: 200px;
   }
   
   .node {
@@ -50,7 +49,7 @@
   
   .line {
     width: 2px;
-    height: 40px; /* 调整直线的长度 */
+    height: 15px; /* 调整直线的长度 */
     background-color: #007bff;
   }
   

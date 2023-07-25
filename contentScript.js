@@ -1,6 +1,7 @@
 // contentScript.js
 logToBackground('Content script started.');
 
+
 function recordDivTree(element) {
   const divTree = {
     tagName: element.tagName,
