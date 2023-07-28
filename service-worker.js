@@ -39,13 +39,23 @@ console.log('插件已启动');
 
 // 监听来自内容脚本的消息
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-if (message.action === 'showNotification') {
-    // 在后台脚本中显示通知
-    showNotification(message.title, message.message);
-}
-else if (message.action === 'log') {
-    console.log('Message from content script:', message.message);
-}
+  if (message.action === 'showNotification') {
+      // 在后台脚本中显示通知
+      showNotification(message.title, message.message);
+  }
+  else if (message.action === 'log') {
+      console.log('Message from content script:', message.message);
+  }
+  else if (message.action === 'performScroll') {
+    console.log('performScroll');
+    // 向当前活动标签页发送滚动指令，并传递滚动距离
+    chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+      chrome.scripting.executeScript({
+        target: { tabId: tabs[0].id },
+        function: scrollFunction
+      });
+    });
+  }
 });
 
 // 显示通知的函数
@@ -56,4 +66,9 @@ chrome.notifications.create({
     title: title,
     message: message,
 });
+}
+
+function scrollToBottom() {
+  console.log('scrollToBottom');
+  window.scrollTo(0, document.body.scrollHeight);
 }

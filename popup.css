@@ -57,8 +57,19 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-  }
 
+  }
+  .node-set{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .children-container-set{
+    display: flex;
+    flex-direction: row;
+    align-items: top;
+    border-left: #a5a5a5 1px solid;
+  }
   .context-menu {
     position: absolute;
     background-color: #fff;

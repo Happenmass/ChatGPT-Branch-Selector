@@ -1,64 +1,187 @@
 // contentScript.js
 logToBackground('Content script started.');
+// 添加消息监听，接收来自 popup.html 的请求
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'reexecuteContentScript') {
+    logToBackground('rerun contentScript.js');
+    logDivTree();
+    logToBackground('send contentsuccess');
+    sendMessageToPopup({ status: 'contentsuccess' });
+    //执行一次popup.js脚本
+    
+    // 使用 return true 来告知 Chrome 扩展将 sendResponse 回调推迟到异步执行
+    return true;
+  }
+});
+chrome.storage.local.remove('divTree', () => {
+  logToBackground('divTree 已从存储中删除');
+});
+// 发送消息给 popup.js
+function sendMessageToPopup(message) {
+  chrome.runtime.sendMessage(message);
+}
+
+function getDivTreeFromStorage() {
+  return new Promise(resolve => {
+    chrome.storage.local.get('divTree', ({ divTree }) => {
+      resolve(divTree);
+    });
+  });
+}
 
 
-function recordDivTree(element) {
+async function recordDivTree(element) {
   const divTree = {
     tagName: element.tagName,
     className: element.className,
     type: 'null',
     textContent: 'header',
+    targetDiv: null,
     children: [],
   };
   // 获取一级子元素
   const childDivs = Array.from(element.children).filter(child => child.tagName === 'DIV');
 
-  // 记录一级子元素的信息，并递归处理下一级子元素
-  let i = 0;
-  recordChildren(childDivs, divTree.children, i);
-  
-  return divTree;
+  try {
+    // 使用 await 等待获取 divTree 值的 Promise 完成
+    const divTreeExist = await getDivTreeFromStorage();
+    logToBackground(divTreeExist);
+    let i = 0;
+    if (divTreeExist && Object.keys(divTreeExist).length !== 0) {
+      logToBackground('divTree_exist');
+      await recorverChildren(childDivs,divTreeExist, i);
+      return divTreeExist;
+    } else {
+      logToBackground('divTree_not_exist');
+      await recordChildren(childDivs, divTree, i);
+      return divTree;
+    }
+  } catch (error) {
+    console.error('获取 divTree 失败：', error);
+    // 处理错误情况
+  }
 }
 
+function recorverChildren(childDivs, divTree, i) {
+  logToBackground('num'+i);
+  logToBackground('childDivs.length'+childDivs.length);
+  const childDiv = childDivs[i];
+
+  let last_content = null;
+
+  if(childDivs[i-1]){
+    last_content = findHiddenDivContent(childDivs[i-1]) === null ? findFirstPTagContent(childDivs[i-1]) : findHiddenDivContent(childDivs[i-1]);
+  }
+  else{
+    last_content = null;
+  }
+  const temp_divTree = {
+    tagName: childDiv.tagName,
+    className: childDiv.className,
+    type: findHiddenDivContent(childDiv) === null ? 'answer' : 'ask',
+    targetDiv: childDiv,
+    textContent: findHiddenDivContent(childDiv) === null ? findFirstPTagContent(childDiv) : findHiddenDivContent(childDiv),
+    children: [],
+  };
+  if(divTree.children.length === 0 && last_content === divTree.textContent){
+    // logToBackground('divTree.textContent')
+    divTree.children.push(temp_divTree);
+    // 递归处理子节点\
+    if(i < childDivs.length-2) {
+      recorverChildren(childDivs, temp_divTree, i+1);
+    }
+    }
+  else{
+    // logToBackground('divTree.children.length != 0')
+    var samechild = false;
+    divTree.children.forEach(childdom => {
+      if(childdom.textContent === temp_divTree.textContent){
+        if ( i < childDivs.length-2){
+          recorverChildren(childDivs, childdom, i+1);
+        }
+        samechild = true;
+      }
+    });
+    if(!samechild){
+      if(last_content === divTree.textContent){
+        divTree.children.push(temp_divTree);
+        // 递归处理子节点\
+        if(i < childDivs.length-2) {
+          recorverChildren(childDivs, temp_divTree, i+1);
+          return  temp_divTree;
+        }
+      }
+    }
+    // divTree.children.forEach(childdom => {
+    //   if(flag){
+    //     divTree.children.push(temp_divTree);
+    //       // 递归处理子节点\
+    //       if(i < childDivs.length-2) {
+    //         recorverChildren(childDivs, temp_divTree, i+1);
+    //       }
+    //       else{
+    //         return temp_divTree;
+    //       }
+    //   }
+    //   else{
+    //     if(i < childDivs.length-2) {
+    //       if(last_content === divTree.textContent)
+    //       {
+    //         recorverChildren(childDivs, childdom, i+1);
+    //       }
+    //     }
+    //     else{
+    //       return childdom;
+    //     }
+    //   }
+    // });
+  }
+}
+
+
 function recordChildren(childDivs, divTree, i) {
+  // logToBackground('num'+i);
   const childDiv = childDivs[i];
 
   const temp_divTree = {
     tagName: childDiv.tagName,
     className: childDiv.className,
     type: findHiddenDivContent(childDiv) === null ? 'answer' : 'ask',
+    targetDiv: childDiv,
     textContent: findHiddenDivContent(childDiv) === null ? findFirstPTagContent(childDiv) : findHiddenDivContent(childDiv),
     children: [],
   };
-    divTree.push(temp_divTree);
-
+  if(divTree.children.length === 0){
+    // logToBackground('divTree.textContent')
+    divTree.children.push(temp_divTree);
     // 递归处理子节点\
-    if(i < childDivs.length-1) {
-      recordChildren(childDivs, temp_divTree.children, i+1);
+    if(i < childDivs.length-2) {
+      recordChildren(childDivs, temp_divTree, i+1);
     }
-    else{
-      return temp_divTree;
     }
 }
 
-function logDivTree() {
+async function logDivTree() {
   // 通过CSS选择器获取class为“flex flex-col h-full text-sm dark:bg-gray-800”的DIV
-  const targetDiv = document.querySelector('.flex.flex-col.h-full.text-sm.dark\\:bg-gray-800');
+  const targetDiv = document.querySelector('.flex.flex-col.text-sm.dark\\:bg-gray-800');
 
   if (targetDiv) {
     // 调用记录函数并获取树形结构
     logToBackground('找到目标 DIV，开始记录 DIV 结构...');
-    const divTree = recordDivTree(targetDiv);
-
+    const divTree = await recordDivTree(targetDiv);
+    // logToBackground(divTree);
     // 将树形结构保存到 Chrome 扩展的存储中
     chrome.storage.local.set({ divTree }, () => {
       logToBackground('DIV 结构已记录：');
     });
+    return true;
   } else {
     logToBackground('目标 DIV 未找到，继续寻找...');
     setTimeout(logDivTree, 1000); // 每隔 1 秒重复执行，可以根据实际情况调整间隔时间
+    return false;
   }
 }
+
 
 // 调用函数开始寻找目标 DIV
 logDivTree();

@@ -14,9 +14,14 @@
     },
     "permissions": [
       "activeTab",
+      "tabs",
       "storage",
       "contextMenus",
-      "sidePanel"
+      "sidePanel",
+      "scripting"
+    ],
+    "host_permissions": [
+      "https://chat.openai.com/*"
     ],
     "background": {
       "service_worker": "service-worker.js"

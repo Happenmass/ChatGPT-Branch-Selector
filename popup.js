@@ -1,10 +1,51 @@
 // popup.js
+const refreshButton = document.getElementById('refreshButton');
+
+// 添加按钮点击事件监听器
+
+document.getElementById('runContentScriptButton').addEventListener('click', () => {
+  // 向 content_script.js 发送消息，请求重新执行
+  chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+    chrome.tabs.sendMessage(tabs[0].id, { action: 'reexecuteContentScript' });
+  });
+});
+
+chrome.runtime.onMessage.addListener(message => {
+  if (message.status === 'contentsuccess') {
+    logToBackground('content success');
+    refreshhtml();
+  } else {
+    // logToBackground('content failed');
+  }
+});
+
+// 使用 Promise 来发送消息给 content_script.js
+// function sendMessageToContentScript(tabId, message) {
+//   return new Promise((resolve, reject) => {
+//     chrome.tabs.sendMessage(tabId, message, response => {
+//       if (chrome.runtime.lastError) {
+//         // 发送消息失败时，返回一个 rejected 状态的 Promise
+//         reject(chrome.runtime.lastError);
+//       } else {
+//         // 返回执行结果给 resolved 状态的 Promise
+//         resolve(response);
+//       }
+//     });
+//   });
+// }
+
 
 // 获取之前记录的 divTree 数据
-chrome.storage.local.get('divTree', ({ divTree }) => {
+function refreshhtml(){
+  chrome.storage.local.get('divTree', ({ divTree }) => {
     if (divTree) {
       const treeContainer = document.getElementById('tree-container');
-  
+      if (treeContainer) {
+        // 获取 "tree-container" div 下的所有 div 元素
+        const divElements = treeContainer.querySelectorAll('div');
+        // 遍历并删除每一个 div 元素
+        divElements.forEach(div => div.remove());
+      }
       // 调用函数来渲染树形结构
       renderDivTree(treeContainer, divTree);
     } else {
@@ -14,7 +55,8 @@ chrome.storage.local.get('divTree', ({ divTree }) => {
       treeContainer.appendChild(errorMessage);
     }
   });
-  
+}
+refreshhtml();
 // 渲染树形结构的函数
 function renderDivTree(container, node) {
   const divNode = document.createElement('div');
@@ -24,7 +66,21 @@ function renderDivTree(container, node) {
       hideContextMenu();
       showContextMenu(event, divNode);
     }
+    if (event.button === 0) {
+      // node.targetDiv.srollIntoView({ behavior: 'smooth', block: 'center' });
+      // logToBackground('SendScroll');
+      // chrome.runtime.sendMessage({ action: 'scrollToPosition', message: 1000 });
+      chrome.runtime.sendMessage({ action: "performScroll"}); // 默认滚动距离为100像素
+      // 通过Chrome的tabs API获取当前活动标签页
+    }
   });
+
+  function scrollToTop() {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  }
 
   // 将 tagInfo 内容作为 data-attribute 存储在节点上
   divNode.setAttribute('data-tag-info', `${node.textContent}`);
@@ -32,20 +88,39 @@ function renderDivTree(container, node) {
   // 将 type 属性作为 data-attribute 存储在节点上
   divNode.setAttribute('data-type', node.type);
 
-  container.appendChild(divNode);
+  // container.appendChild(divNode);
+
+  const ndoeset = document.createElement('div');
+  ndoeset.classList.add('node-set');
+  ndoeset.appendChild(divNode);
+  container.appendChild(ndoeset);
 
   if (node.children.length > 0) {
     const line = document.createElement('div');
     line.classList.add('line');
-    container.appendChild(line);
+    ndoeset.appendChild(line);
 
-    const childrenContainer = document.createElement('div');
-    childrenContainer.classList.add('children-container');
-    container.appendChild(childrenContainer);
 
-    node.children.forEach(childNode => {
-      renderDivTree(childrenContainer, childNode);
-    });
+    let i = 0;
+    if(node.children.length>1){
+      const childrenContainerset = document.createElement('div');
+      childrenContainerset.classList.add('children-container-set');
+
+      node.children.forEach(childNode => {
+        const childrenContainer = document.createElement('div');
+        childrenContainer.classList.add('children-container');
+        childrenContainerset.appendChild(childrenContainer);
+        container.appendChild(childrenContainerset);
+        renderDivTree(childrenContainer, childNode);
+      }
+      );
+    }
+    else if(node.children.length==1){
+      const childrenContainer = document.createElement('div');
+      childrenContainer.classList.add('children-container');
+      container.appendChild(childrenContainer);
+      renderDivTree(childrenContainer, node.children[0]);
+    } 
   }
 }
 document.addEventListener('contextmenu', event => event.preventDefault());
