@@ -19,6 +19,28 @@ chrome.runtime.onMessage.addListener(message => {
   }
 });
 
+// document.getElementById('scrollBtn').addEventListener('click', function() {
+//   chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+//     chrome.scripting.executeScript(
+//       {
+//         target: {tabId: tabs[0].id},
+//         function: scrollDown
+//       }
+//     );
+//   });
+
+//   function scrollDown() {
+//     // 根据实际情况，替换为正确的元素选择器，以选择具有滚动行为的特定元素。
+//     var scrollDiv = document.querySelector('#__next > div.overflow-hidden.w-full.h-full.relative.flex.z-0 > div.relative.flex.h-full.max-w-full.flex-1.overflow-hidden > div > main > div.flex-1.overflow-hidden > div > div');
+//     if (scrollDiv) {
+//       logToBackground('scroll success');
+//       scrollDiv.scrollTop += 100;
+//     } else {
+//       logToBackground('No element found for scrolling');
+//     }
+//   }
+// });
+
 // 使用 Promise 来发送消息给 content_script.js
 // function sendMessageToContentScript(tabId, message) {
 //   return new Promise((resolve, reject) => {
@@ -67,20 +89,29 @@ function renderDivTree(container, node) {
       showContextMenu(event, divNode);
     }
     if (event.button === 0) {
-      // node.targetDiv.srollIntoView({ behavior: 'smooth', block: 'center' });
-      // logToBackground('SendScroll');
-      // chrome.runtime.sendMessage({ action: 'scrollToPosition', message: 1000 });
-      chrome.runtime.sendMessage({ action: "performScroll"}); // 默认滚动距离为100像素
-      // 通过Chrome的tabs API获取当前活动标签页
-    }
-  });
+      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.scripting.executeScript(
+          {
+            target: {tabId: tabs[0].id},
+            function: scrollDown,
+            args: [node.top]
+          }
+        );
+      });
 
-  function scrollToTop() {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  }
+      function scrollDown(top) {
+        // 根据实际情况，替换为正确的元素选择器，以选择具有滚动行为的特定元素。
+        var scrollDiv = document.querySelector('#__next > div.overflow-hidden.w-full.h-full.relative.flex.z-0 > div.relative.flex.h-full.max-w-full.flex-1.overflow-hidden > div > main > div.flex-1.overflow-hidden > div > div');
+        if (scrollDiv) {
+          scrollDiv.scrollTop = top;
+        } else {
+          logToBackground('No element found for scrolling');
+        }
+      }
+
+    }
+      // 通过Chrome的tabs API获取当前活动标签页
+  });
 
   // 将 tagInfo 内容作为 data-attribute 存储在节点上
   divNode.setAttribute('data-tag-info', `${node.textContent}`);
@@ -123,6 +154,7 @@ function renderDivTree(container, node) {
     } 
   }
 }
+
 document.addEventListener('contextmenu', event => event.preventDefault());
 // 鼠标右键点击事件监听
 

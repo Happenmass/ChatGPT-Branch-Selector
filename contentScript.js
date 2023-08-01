@@ -3,16 +3,19 @@ logToBackground('Content script started.');
 // 添加消息监听，接收来自 popup.html 的请求
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'reexecuteContentScript') {
-    logToBackground('rerun contentScript.js');
-    logDivTree();
-    logToBackground('send contentsuccess');
-    sendMessageToPopup({ status: 'contentsuccess' });
+    logDivTree().then(() => {
+      logToBackground('send contentsuccess');
+      sendMessageToPopup({ status: 'contentsuccess' });
+    });
     //执行一次popup.js脚本
     
     // 使用 return true 来告知 Chrome 扩展将 sendResponse 回调推迟到异步执行
     return true;
   }
 });
+
+
+
 chrome.storage.local.remove('divTree', () => {
   logToBackground('divTree 已从存储中删除');
 });
@@ -29,12 +32,18 @@ function getDivTreeFromStorage() {
   });
 }
 
+// 调用函数开始寻找目标 DIV
+logDivTree();
+// 调用目标函数开始添加listener
+addListener();
+
 
 async function recordDivTree(element) {
   const divTree = {
     tagName: element.tagName,
     className: element.className,
     type: 'null',
+    top: element.offsetTop,
     textContent: 'header',
     targetDiv: null,
     children: [],
@@ -45,11 +54,12 @@ async function recordDivTree(element) {
   try {
     // 使用 await 等待获取 divTree 值的 Promise 完成
     const divTreeExist = await getDivTreeFromStorage();
-    logToBackground(divTreeExist);
+    // logToBackground(divTreeExist);
     let i = 0;
     if (divTreeExist && Object.keys(divTreeExist).length !== 0) {
       logToBackground('divTree_exist');
       await recorverChildren(childDivs,divTreeExist, i);
+      logToBackground(divTreeExist);
       return divTreeExist;
     } else {
       logToBackground('divTree_not_exist');
@@ -63,8 +73,8 @@ async function recordDivTree(element) {
 }
 
 function recorverChildren(childDivs, divTree, i) {
-  logToBackground('num'+i);
-  logToBackground('childDivs.length'+childDivs.length);
+  // logToBackground('num'+i);
+  // logToBackground('childDivs.length'+childDivs.length);
   const childDiv = childDivs[i];
 
   let last_content = null;
@@ -79,6 +89,7 @@ function recorverChildren(childDivs, divTree, i) {
     tagName: childDiv.tagName,
     className: childDiv.className,
     type: findHiddenDivContent(childDiv) === null ? 'answer' : 'ask',
+    top: childDiv.offsetTop,
     targetDiv: childDiv,
     textContent: findHiddenDivContent(childDiv) === null ? findFirstPTagContent(childDiv) : findHiddenDivContent(childDiv),
     children: [],
@@ -147,6 +158,7 @@ function recordChildren(childDivs, divTree, i) {
     tagName: childDiv.tagName,
     className: childDiv.className,
     type: findHiddenDivContent(childDiv) === null ? 'answer' : 'ask',
+    top: childDiv.offsetTop,
     targetDiv: childDiv,
     textContent: findHiddenDivContent(childDiv) === null ? findFirstPTagContent(childDiv) : findHiddenDivContent(childDiv),
     children: [],
@@ -167,7 +179,7 @@ async function logDivTree() {
 
   if (targetDiv) {
     // 调用记录函数并获取树形结构
-    logToBackground('找到目标 DIV，开始记录 DIV 结构...');
+    logToBackground('找到目标 DIV, 开始记录 DIV 结构...');
     const divTree = await recordDivTree(targetDiv);
     // logToBackground(divTree);
     // 将树形结构保存到 Chrome 扩展的存储中
@@ -182,9 +194,30 @@ async function logDivTree() {
   }
 }
 
+async function addListener() {
+  // 通过CSS选择器获取class为“flex flex-col h-full text-sm dark:bg-gray-800”的DIV
+  var buttons = document.querySelectorAll(".dark\\:text-white.disabled\\:text-gray-300.dark\\:disabled\\:text-gray-400");
 
-// 调用函数开始寻找目标 DIV
-logDivTree();
+  if (buttons.length > 0) {
+    // 调用记录函数并获取树形结构
+    buttons.forEach(function(button) {
+      button.addEventListener('click', function() {
+          // 这里写你的事件处理函数
+      setTimeout(() => {
+        logDivTree().then(() => {
+          sendMessageToPopup({ status: 'contentsuccess' });
+        });
+      }, 1000);
+
+      });
+    });
+    return true;
+  } else {
+    logToBackground('目标 button 未找到，继续寻找...');
+    setTimeout(addListener, 1000); // 每隔 1 秒重复执行，可以根据实际情况调整间隔时间
+    return false;
+  }
+}
 
 function logToBackground(message) {
   chrome.runtime.sendMessage({ action: 'log', message: message });
